@@ -1,0 +1,6 @@
+China = "中规"
+ChinaImport = "中规进口"
+USA = "美版"
+Canada = "加版"
+Mexico = "墨版"
+European = "欧版"
