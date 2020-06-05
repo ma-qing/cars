@@ -1,6 +1,7 @@
 # # -*- coding: utf-8 -*-
+# 牛牛汽车：10s 两个并发， 10分钟 40个请求被封
 '''
-牛牛汽车：10s 两个并发， 10分钟 40个请求被封
+车行168夜神模拟器 apk + appium 实现模拟注册
 '''
 import random
 import time
@@ -10,6 +11,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from appium import webdriver
 
 from cars.madashi import build_phonenum, get_code, relase_phonenum, get_token
+from cars.utils import set_redis
 
 desired_caps = {}
 desired_caps['platformName'] = 'Android'
@@ -44,11 +46,13 @@ from appium.webdriver.common.touch_action import TouchAction
 
 def touch_test(driver, start, end, el):
     actions = TouchAction(driver)
-    actions.long_press(el) # 类似手指按压屏幕的(100, 300)位置
-    actions.wait()
-    actions.move_to(x=end[0], y=end[1]) # 移动手指到达(100, 100)位置
-    actions.release() # 放开手指
-    actions.perform() # 将上面3个操作串联起来，依次执行
+    # actions.long_press(el, 3000) # 类似手指按压屏幕的(100, 300)位置
+    actions.long_press(el, duration=3000).move_to(x=end[0], y=end[1]).release().perform() # 类似手指按压屏幕的(100, 300)位置
+    # actions.wait(1000)
+    # actions.move_to(x=end[0], y=end[1]) # 移动手指到达(100, 100)位置
+    # actions.wait(1000)
+    # actions.release() # 放开手指
+    # actions.perform() # 将上面3个操作串联起来，依次执行
 
 
 
@@ -59,7 +63,7 @@ def logincar168(driver):
         if WebDriverWait(driver, 3).until(lambda x: x.find_element_by_xpath("//android.widget.Button[@resource-id='com.zjw.chehang168:id/itemButton']")):
             driver.find_element_by_xpath("//android.widget.Button[@resource-id='com.zjw.chehang168:id/itemButton']").click()
     except Exception as e:
-        print(e)
+        print(e, "跳过页面没有出现")
 
     try:
         # 使用账号名密码登录
@@ -124,7 +128,7 @@ def signup_car168(driver):
             driver.find_element_by_xpath(
                 "//android.widget.TextView[@resource-id='com.zjw.chehang168:id/loginButton']").click()
     except Exception as e:
-        print(e)
+        print(e, "输入手机号点击获取验证码出错")
 
     try:
         # 安全验证
@@ -142,7 +146,7 @@ def signup_car168(driver):
             print(start,end)
             touch_test(driver=driver, start=start, end=end, el=inter)
     except Exception as e:
-        print(e)
+        print(e, "滑动验证模块出错")
 
     # 发送验证码接口
     print("手机号", phone_nume)
@@ -152,6 +156,7 @@ def signup_car168(driver):
     # relase_phonenum(projectid, phone_nume, token)
     if not code:
         print("没有收到验证码，直接退出")
+        driver.quit()
         return None
     try:
         # 输入验证码
@@ -248,6 +253,12 @@ def signup_car168(driver):
     except Exception as e:
         print("没有确认按钮",e)
 
+    # 操作完成后把手机号存入redis
+    else:
+        result = set_redis(2).sadd("car168_phonenum", phone_nume)
+        print("phone_num{}写入redis中:{}".format(phone_nume, result))
+        driver.quit()
+
 
 def choice_city(driver):
     # 选择省份：福建
@@ -277,21 +288,6 @@ def choice_city(driver):
             except Exception as e:
                 print("城市选择出错:", e)
 
-# 数据
-def get_data(driver):
-    aodi = driver.find_element_by_xpath("//android.widget.ListView[@resource-id='com.zjw.chehang168:id/carIndexlist']/android.widget.RelativeLayout[5]")
-    print(aodi, type(aodi))
-    print(aodi.text)
-    aodi.click()
-    time.sleep(3)
-    aodia3 = driver.find_element_by_xpath("//android.widget.TextView[@text='奥迪A3']")
-    aodia3.click()
-    time.sleep(2)
-    all_div = driver.find_element_by_xpath("//android.widget.ListView[@resource-id='com.zjw.chehang168:id/list1']/android.widget.RelativeLayout")
-    # "//android.widget.ListView[@resource-id='com.zjw.chehang168:id/list1']/android.widget.RelativeLayout[1]/android.widget.RelativeLayout[1]/android.widget.RelativeLayout[1]/android.widget.LinearLayout[1]"
-    # "//android.widget.FrameLayout[1]/android.widget.LinearLayout[1]/android.widget.FrameLayout[1]/android.widget.LinearLayout[1]/android.widget.FrameLayout[1]/android.view.View[1]/android.widget.RelativeLayout[1]/android.view.View[1]/android.widget.ListView[1]/android.widget.RelativeLayout[1]/android.widget.RelativeLayout[1]/android.widget.RelativeLayout[1]/android.widget.LinearLayout[1]/android.widget.TextView[1]"
-    text_div = all_div.find_element_by_xpath(".//android.widget.LinearLayout[1]/android.widget.TextView[1]")
-    print(text_div.text)
 
 
 
@@ -311,6 +307,8 @@ if __name__ == '__main__':
     17169479357
     16574980930
     '''
-    driver = get_driver()
-    signup_car168(driver)
+    for i in range(15):
+        print("第%s次注册"%i)
+        driver = get_driver()
+        signup_car168(driver)
 

@@ -117,6 +117,8 @@ class CarsDownloaderMiddleware(object):
 class DealDataMiddleware(object):
     add_url_r = set_redis(db=1)
     cookies_deal_r = set_redis(db=2)
+    set_url_r = set_redis(4)
+
     # 获取代理
     def get_proxy(self):
         with open(os.path.join(BASE_DIR, "proxies.txt"), "r") as f:
@@ -146,12 +148,13 @@ class DealDataMiddleware(object):
     def process_request(self, request, spider):
         selflog = SelfLog(spider.name)
         # 根据爬虫名字分别处理爬虫代理和cookie
-        if spider.name == "nnqc" or spider.name == "chezhen":
+        if spider.name == "nnqc":
+            request.meta['http_proxy'] = self.get_proxy()
+            print("{}使用的代理为{},请求url:{}".format(spider.name, request.meta['http_proxy'], request.url))
+        elif spider.name == "chezhen":
             request.meta['http_proxy'] = self.get_proxy()
             print("{}使用的代理为{},请求url:{}".format(spider.name, request.meta['http_proxy'], request.url))
         elif spider.name == "car168":
-            pass
-        elif spider.name == "chezhen":
             pass
 
         # # 添加cookie

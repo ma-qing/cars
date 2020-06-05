@@ -11,15 +11,18 @@ from scrapy import Request
 from cars.CONSTANT import China, USA, Canada, European, Mexico
 from cars.items import CarStyleItem
 from cars.log_utils import SelfLog
-from cars.utils import deal_style, deal_year, deal_displacement, deal_guideprice, sav_item, set_redis, Mysqlpython
+from cars.utils import deal_style, deal_year, deal_displacement, deal_guideprice, sav_item, set_redis, Mysqlpython, \
+    deal_updatetime
 
 cookie_r = set_redis(2)
+set_url_r = set_redis(4)
 # type_r = set_redis()
 dbhelper = Mysqlpython()
 
 cookies_chezhen = "cookies_chezhen"
 unuseless_cookies_chezhen = "unuseless_cookies_chezhen"
 url_redis = "chezhen"
+url_redis_chezhen = "chezhen_urls"
 
 
 class ChezhenSpider(scrapy.Spider):
@@ -126,17 +129,13 @@ class ChezhenSpider(scrapy.Spider):
             guide_price = li.xpath('./a/div[@class="detail"]/p[@class="rt"]/text()').extract_first()
             config = li.xpath('./a/div[@class="intro"][2]/text()').extract_first()
 
-            if carstyle:
-                carstyle = deal_style(carstyle)
-            else:
-                carstyle = ""
+            carstyle = deal_style(carstyle)
             year = deal_year(carstyle, self)
 
             # 排量
             displacement = deal_displacement(carstyle, self)
             # 指导价格
-            if guide_price:
-                guide_price = deal_guideprice(guide_price)
+            guide_price = deal_guideprice(guide_price, carstyle, self)
 
             # 详情页P标签中的值判断进口版本
             if China in version:
@@ -156,13 +155,7 @@ class ChezhenSpider(scrapy.Spider):
                 version_num = "平行None"
 
             updatetime = li.xpath('./a/div[@class="attach"]/p[@class="rt"]/text()').extract_first()
-            if updatetime:
-                if "-" in updatetime:
-                    updatetime = str(datetime.datetime.now().year) + "-"+ updatetime +" 00:00"
-                elif ":" in updatetime:
-                    updatetime = datetime.datetime.now().strftime('%Y-%m-%d') + " " + updatetime
-            else:
-                updatetime = ""
+            updatetime = deal_updatetime(updatetime)
 
             detail_url = li.xpath('./a/@href').extract_first()
             if detail_url:
@@ -204,6 +197,9 @@ class ChezhenSpider(scrapy.Spider):
             request.meta['useless_cookies'] = unuseless_cookies_chezhen
             # self.selflog.logger.info("继续抓取下一页信息:{}".format(request_url))
             yield request
+
+        set_url_r.sadd(url_redis_chezhen, response.url)
+
 
 
 

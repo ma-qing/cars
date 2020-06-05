@@ -14,13 +14,18 @@ from cars.utils import set_redis
 
 projectid = "32409"
 matchrule = "验证码.?(\d+)"
-phone_num_list = ["16517865849"]#"17169479357""16535511249","16574980930","16531165344","16533431172",]
-phone_num = phone_num_list[0]
-print("从列表中取得手机号:", phone_num)
-# token = get_token('maxfire', "ma123456")
-# phone_num_from = get_phonenum(projectid, token=token, phone=phone_num, loop=2)
-token, phone_num_from = build_phonenum(projectid, loop=2, phone=phone_num)
-print("解码平台手机号:", phone_num_from)
+def get_phone():
+    phone_num = set_redis(2).spop("car168_phonenum")
+    # phone_num_list = []#"17169479357""16535511249","16574980930","16531165344","16533431172",]
+    # phone_num = phone_num_list[0]
+    print("从列表中取得手机号:", phone_num)
+    if phone_num:
+        phone_num = phone_num.decode()
+    # token = get_token('maxfire', "ma123456")
+    # phone_num_from = get_phonenum(projectid, token=token, phone=phone_num, loop=2)
+    token, phone_num_from = build_phonenum(projectid, loop=2, phone=phone_num)
+    print("解码平台手机号:", phone_num_from)
+    return token, phone_num_from
 
 # option = ChromeOptions()
 # option.add_experimental_option('excludeSwitches', ['enable-automation'])
@@ -122,15 +127,20 @@ def clicklogin(driver, phone_num, projectid, token, matchrule):
         print(mapping)
         r.zadd("cookies_car168", mapping)
         print("成功存入redis")
+        driver.quit()
     else:
         print("没有接收到验证码")
 
 
 if __name__ == '__main__':
-    driver = get_driver()
-    sleep(1)
-    mouseclick()
-    clicklogin(driver, phone_num, projectid, token=token, matchrule=matchrule)
+    while set_redis(2).scard("car168_phonenum"):
+        token, phone_num = get_phone()
+        if not phone_num:
+            continue
+        driver = get_driver()
+        sleep(1)
+        mouseclick()
+        clicklogin(driver, phone_num, projectid, token=token, matchrule=matchrule)
 
 
 

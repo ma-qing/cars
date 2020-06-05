@@ -51,14 +51,25 @@ url = "http://www.niuniuqiche.com/v2/sell_cars?brand_name=%E5%A5%A5%E8%BF%AA&car
 #         "CzcyAutoLogin":"e8y5J709aeW71cl2Iejbo2x2NdT7gc5bOTQ2MTk2LCJpZCI6IjE2MzY4NCIsInRva2VuIjoiZDgyZTdlNTFmOWJiYjUzODljYmM3NTQ1MjNhNWQ2OGIifQO0O0OO0O0O",
 #     }
 
-# r = set_redis(2)
+r = set_redis(2)
 # for i in r.zscan("unuseless_cookies_car168")[1]:
-#     mapping = {}
-#     mapping[i[0]] = i[1]
-#     print(mapping)
-#     r.zadd("cookies_car168", mapping)
+#     # mapping = {}
+#     # mapping[i[0]] = i[1]
+#     # print(mapping)
+#     phone_num = str(int(i[1]))
+#     print(phone_num)
+#     r.sadd("car168_phonenum", phone_num)
 
-str1 = "【车行168】您的验证码是6843，10分钟内有效，请勿泄漏给他人"
-str2 = "验证码为7474"
-print(re.search("验证码.?(\d+)", str2).group(1))
+def get_from_unuseless_phonenum():
+    r = set_redis(2)
+    for i in r.zscan("unuseless_cookies_car168")[1]:
+        # mapping = {}
+        # mapping[i[0]] = i[1]
+        # print(mapping)
+        phone_num = str(int(i[1]))
+        print(phone_num)
+        r.sadd("car168_phonenum", phone_num)
+
+if __name__ == '__main__':
+    print(set_redis(2).scard("car168_phonenum"))
 

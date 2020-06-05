@@ -1,3 +1,4 @@
+import datetime
 import re
 
 import redis
@@ -71,8 +72,12 @@ def set_redis(db=0):
 
 # 处理车型(去掉空格等其他因素)
 def deal_style(car_style):
-    car_style = " ".join(car_style.split())
+    if car_style:
+        car_style = " ".join(car_style.split())
+    else:
+        car_style = ""
     return car_style
+
 
 # 年款匹配
 def deal_year(car_style, obj):
@@ -82,7 +87,7 @@ def deal_year(car_style, obj):
         year = search_year.group()
     else:
         year = None
-        obj.logger.info("车型{car_style}未匹配到年款信息".format(car_style=car_style))
+        obj.selflog.logger.info("车型{car_style}未匹配到年款信息".format(car_style=car_style))
 
     return year
 
@@ -93,18 +98,36 @@ def deal_displacement(car_style, obj):
     if search_displacement:
         displacement = search_displacement.group()
     else:
-        obj.logger.info("车型:{car_style}未匹配到排量信息".format(car_style=car_style))
+        obj.selflog.logger.info("车型:{car_style}未匹配到排量信息".format(car_style=car_style))
         displacement = None
     return displacement
 
 
 # 处理指导价格
-def deal_guideprice(guide_price):
+def deal_guideprice(guide_price, car_style, obj):
     # 匹配后的价格 XX.XX万
-    select_guide_price = re.search("\d+\.\d+万|\d+万", guide_price, re.I)
-    if select_guide_price:
-        guide_price = select_guide_price.group()
+    if guide_price:
+        select_guide_price = re.search("\d+\.\d+万|\d+万", guide_price, re.I)
+        if select_guide_price:
+            guide_price = select_guide_price.group()
+        else:
+            obj.selflog.logger.info("车型:{car_style}未匹配到指导价格".format(car_style=car_style))
+            guide_price = None
+    else:
+        guide_price = None
     return guide_price
+
+
+# 处理更新时间
+def deal_updatetime(updatetime):
+    if updatetime:
+        if "-" in updatetime:
+            updatetime = str(datetime.datetime.now().year) + "-" + updatetime + " 00:00"
+        elif ":" in updatetime:
+            updatetime = datetime.datetime.now().strftime('%Y-%m-%d') + " " + updatetime
+    else:
+        updatetime = ""
+    return updatetime
 
 
 #保存item对象

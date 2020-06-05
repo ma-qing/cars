@@ -121,10 +121,7 @@ def get_code(projectid, phonenum, token, matchrule, username="maxfire", processn
         token=token,
         username=username,
     )
-    i = 30
-    code = None
-    while i:
-        i = i - 1
+    while True:
         time.sleep(3)
         result = requests.get(url).content.decode()
         status = result.split("|")[0]
@@ -153,6 +150,8 @@ def build_phonenum(projectid, loop=1, phone="", filter=""):
             phonenum = get_phonenum(projectid=projectid, token=token, loop=loop, phone=phone, filter=filter)
             if phonenum:
                 return token, phonenum
+            else:
+                return token, None
     else:
         print("没有收到手机号")
         return None, None

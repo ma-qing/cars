@@ -13,17 +13,18 @@ from scrapy import Request
 # 账号：17061084088
 # 密码：ma123456
 from cars.CONSTANT import USA, Canada, Mexico, European, China, ChinaImport
-from cars.cookies import cookie_nn
 from cars.items import CarStyleItem, CarDetailItem
 from cars.log_utils import SelfLog
 from cars.settings import BASE_DIR
-from cars.utils import Mysqlpython, set_redis
+from cars.utils import Mysqlpython, set_redis, deal_style, deal_year, deal_displacement, deal_guideprice
 
 r_zet_cookie = set_redis(2)
+set_url_r = set_redis(4)
 dbhelper = Mysqlpython()
 cookies_nnqc = "cookies_nnqc"
 unuseless_cookies_nnqc = "unuseless_cookies_nnqc"
 url_redis = "nnqc"
+url_redis_nnqc = "nnqc_urls"
 
 
 class NnqcSpider(scrapy.Spider):
@@ -151,12 +152,6 @@ class NnqcSpider(scrapy.Spider):
                     request_nextpage.meta['brand'] = response.meta['brand']
                     request_nextpage.meta['car_type'] = response.meta['car_type']
                     yield request_nextpage
-        # # 下一页信息
-        # nextpage_url = response.xpath(
-        #     '//div[@class="section-pagination"]//span[@class="next"]/a/@href').extract_first()
-        # if nextpage_url:
-        #     self.selflog.logger.info("继续请求下一页信息:%s"%(self.start_urls[0]+nextpage_url))
-        #     request = response.follow(url=self.start_urls[0]+nextpage_url, callback=self.parse_select_cartype, )#headers=self.get_headers())#, cookies=self.get_cookie(cookie))
 
         type_label = response.meta['table_lable']
         # 车型
@@ -164,40 +159,18 @@ class NnqcSpider(scrapy.Spider):
         requesturl = response.url
 
         for div in base_car_style:
-            carstyleitem = CarStyleItem()
-            carstyleitem['brand'] = response.meta['brand']
-            carstyleitem["type"] = response.meta['car_type']
-            carstyleitem["requesturl"] = requesturl
+
             car_style = div.xpath('./div[@class="car-title"]/a/text()').extract_first()
             # 类型去空格处理后使用一个空格隔开
-            if car_style:
-                car_style = " ".join(car_style.split())
-            carstyleitem['style'] = car_style
+            car_style = deal_style(car_style)
             # 配置没有为空
             # config = li.xpath('./p[@class="c2"]/text()').extract_first()
             config = None
-            # 配置
-            carstyleitem['configuration'] = str(config)
 
             # 排量
-            search_displacement = re.search("\d+\.\d+T|\d+T|\d+\.\d+Li|\d+Li|\d+\.\d+L|\d+L", car_style)
-            if search_displacement:
-                displacement = search_displacement.group()
-            else:
-                self.selflog.logger.info("车型:{car_style}未匹配到排量信息".format(car_style=car_style))
-                displacement = None
-
-            carstyleitem['displacement'] = displacement
-
+            displacement = deal_displacement(car_style, self)
             # 年款
-            search_year = re.search('\d+款', car_style)
-            if search_year:
-                year = search_year.group()
-            else:
-                year = None
-                self.selflog.logger.info("车型{car_style}未匹配到年款信息".format(car_style=car_style))
-
-            carstyleitem['year'] = year
+            year = deal_year(car_style, self)
 
             # 进口方式
             version = div.xpath('./div[@class="car-subtitle clearfix"]/span/text()').extract_first()
@@ -225,19 +198,11 @@ class NnqcSpider(scrapy.Spider):
                 else:
                     self.selflog.logger.info("车型{car_style}的进口版本不在规定内".format(car_style=car_style))
                     version_num = None
-            carstyleitem['version'] = str(version_num)
 
             # 指导价: 指导价:25.27万下20点
             guide_price = div.xpath('./div/div[@class="car-guide-price"]/text()').extract_first()
-            if guide_price:
-                # 匹配后的价格 XX.XX万
-                select_guide_price = re.search("\d+\.\d+万|\d+万", guide_price, re.I)
-                if select_guide_price:
-                    guide_price = select_guide_price.group()
-            carstyleitem['guide_price'] = guide_price
-            # 价钱标识 ￥
+            guide_price = deal_guideprice(guide_price,car_style,self)
             price = div.xpath('./div/div[@class="car-price"]/text()').extract_first()
-            carstyleitem['price'] = price
             # 成交量： 车源成交量：3单
             volume = div.xpath('./div[@class="user-info clearfix"]/span[3]/text()').extract_first()
             if volume:
@@ -263,6 +228,17 @@ class NnqcSpider(scrapy.Spider):
             else:
                 updatetime = ""
 
+            carstyleitem = CarStyleItem()
+            carstyleitem['brand'] = response.meta['brand']
+            carstyleitem["type"] = response.meta['car_type']
+            carstyleitem['year'] = year
+            carstyleitem['style'] = car_style
+            carstyleitem["requesturl"] = requesturl
+            carstyleitem['configuration'] = str(config)
+            carstyleitem['displacement'] = displacement
+            carstyleitem['version'] = str(version_num)
+            carstyleitem['guide_price'] = guide_price
+            carstyleitem['price'] = price
             carstyleitem['volume'] = volume
             carstyleitem['status'] = "None"
             carstyleitem['platform'] = 2
@@ -270,4 +246,7 @@ class NnqcSpider(scrapy.Spider):
             carstyleitem['detail_url'] = detail_url
             carstyleitem['updatetime'] = updatetime
             yield carstyleitem
+
+        set_url_r.sadd(url_redis_nnqc, response.url)
+
 
