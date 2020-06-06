@@ -11,7 +11,7 @@ chardet==3.0.4
 constantly==15.1.0
 cryptography==2.9
 cssselect==1.1.0
-Django==2.0
+Django==2.2.13
 djangorestframework==3.11.0
 fake-useragent==0.1.11
 hyperlink==19.0.0
