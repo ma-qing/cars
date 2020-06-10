@@ -60,16 +60,7 @@ r = set_redis(2)
 #     print(phone_num)
 #     r.sadd("car168_phonenum", phone_num)
 
-def get_from_unuseless_phonenum():
-    r = set_redis(2)
-    for i in r.zscan("unuseless_cookies_car168")[1]:
-        # mapping = {}
-        # mapping[i[0]] = i[1]
-        # print(mapping)
-        phone_num = str(int(i[1]))
-        print(phone_num)
-        r.sadd("car168_phonenum", phone_num)
+
 
 if __name__ == '__main__':
-    print(set_redis(2).scard("car168_phonenum"))
-
+    pass

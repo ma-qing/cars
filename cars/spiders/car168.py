@@ -10,7 +10,6 @@ from fake_useragent import UserAgent
 from scrapy import Request
 
 from cars.CONSTANT import China, ChinaImport, USA, Canada, Mexico, European
-from cars.cookies import cookies168_list, cookies168_list2
 from cars.items import CarStyleItem
 from cars.log_utils import SelfLog
 from cars.utils import Mysqlpython, set_redis, deal_year, deal_style, deal_displacement, deal_updatetime, \
@@ -85,7 +84,6 @@ class Car168Spider(scrapy.Spider):
         # type_label = response.meta['type_lable']
         # 车型
         #***新方法的brand, type_lable, type
-        time.sleep(random.randint(1, 5))
         self.i += 1
         type_lable = response.xpath('//div[@class="sx_left o_cf"]/a[1]/span/text()').extract_first()
         brand = response.xpath('//div[@class="ch_crumb o_w mar8"]/a[3]/text()').extract_first()

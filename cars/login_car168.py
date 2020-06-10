@@ -25,7 +25,7 @@ def get_phone():
     # phone_num_from = get_phonenum(projectid, token=token, phone=phone_num, loop=2)
     token, phone_num_from = build_phonenum(projectid, loop=2, phone=phone_num)
     print("解码平台手机号:", phone_num_from)
-    return token, phone_num_from
+    return token, phone_num_from, phone_num
 
 # option = ChromeOptions()
 # option.add_experimental_option('excludeSwitches', ['enable-automation'])
@@ -103,7 +103,7 @@ def clicklogin(driver, phone_num, projectid, token, matchrule):
     # 点击获取验证码
     sendcode = driver.find_element_by_id("sendCode")
     sendcode.click()
-    # 接收验证码
+    # 接收验证码， 处理下接受不到短信的手机号
     code = get_code(projectid, phonenum=phone_num, token=token, matchrule=matchrule)
     if code:
         # 输入验证码
@@ -123,24 +123,33 @@ def clicklogin(driver, phone_num, projectid, token, matchrule):
         print(cookies)
         r = set_redis(2)
 
-        mapping = {json.dumps(cookies): int(phone_num)}
-        print(mapping)
-        r.zadd("cookies_car168", mapping)
+        # mapping = {json.dumps(cookies): int(phone_num)}
+        # print(mapping)
+        # r.zadd("cookies_car168", mapping)
+        # 将cookie值存入redis list 和hash
+        dump_cookies = json.dumps(cookies)
+        r.lpush("cookies_car168_list", dump_cookies)
+        r.hset("cookies_car168", dump_cookies, phone_num)
         print("成功存入redis")
         driver.quit()
     else:
+        print("将无用注册手机号存入redis")
+        set_redis(2).sadd("unuseless_car168_phonenum", phone_num)
         print("没有接收到验证码")
 
 
 if __name__ == '__main__':
     while set_redis(2).scard("car168_phonenum"):
-        token, phone_num = get_phone()
+        token, phone_num, phone_num_from_set = get_phone()
         if not phone_num:
+            print("将无用注册手机号存入redis")
+            set_redis(2).sadd("unuseless_car168_phonenum", phone_num_from_set)
             continue
         driver = get_driver()
         sleep(1)
         mouseclick()
         clicklogin(driver, phone_num, projectid, token=token, matchrule=matchrule)
+
 
 
 

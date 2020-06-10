@@ -19,7 +19,11 @@ desired_caps['deviceName'] = '127.0.0.1:62001'
 desired_caps['platformVersion'] = '5.1.1'
 desired_caps['appPackage'] = 'com.zjw.chehang168'
 desired_caps['appActivity'] = 'com.zjw.chehang168.V40MainActivity'
+# 设置超时时间
+desired_caps['newCommandTimeout'] = "2000"
 desired_caps['noReset'] = True
+desired_caps['unicodeKeyboard'] = True
+desired_caps['resetKeyboard'] = True
 
 # 接码平台相关数据
 # projectid = "19503"
@@ -47,7 +51,7 @@ from appium.webdriver.common.touch_action import TouchAction
 def touch_test(driver, start, end, el):
     actions = TouchAction(driver)
     # actions.long_press(el, 3000) # 类似手指按压屏幕的(100, 300)位置
-    actions.long_press(el, duration=3000).move_to(x=end[0], y=end[1]).release().perform() # 类似手指按压屏幕的(100, 300)位置
+    actions.long_press(el, duration=1500).move_to(x=end[0], y=end[1]).release().perform() # 类似手指按压屏幕的(100, 300)位置
     # actions.wait(1000)
     # actions.move_to(x=end[0], y=end[1]) # 移动手指到达(100, 100)位置
     # actions.wait(1000)
@@ -82,7 +86,7 @@ def logincar168(driver):
         print(e)
     try:
         # 安全验证
-        if WebDriverWait(driver, 8).until(lambda x: x.find_element_by_xpath(
+        if WebDriverWait(driver, 20).until(lambda x: x.find_element_by_xpath(
                 "//android.view.View[@resource-id='nc_1_n1t']")):
             inter = driver.find_element_by_xpath(
                 "//android.view.View[@resource-id='nc_1_n1t']")
@@ -261,32 +265,34 @@ def signup_car168(driver):
 
 
 def choice_city(driver):
-    # 选择省份：福建
+    # 选择城市: 北京 天津 大连 上海重庆成都
     try:
         if WebDriverWait(driver, 5).until(lambda x: x.find_element_by_xpath(
-                "//android.widget.ListView[@resource-id='com.zjw.chehang168:id/list1']/android.widget.RelativeLayout[2]/android.widget.ListView[1]/android.widget.RelativeLayout[4]")):
+                "//android.widget.ListView[@resource-id='com.zjw.chehang168:id/list1']/android.widget.RelativeLayout[1]/android.widget.ListView[1]/android.widget.RelativeLayout[{city}]".format(city=random.randint(1, 6)))):
+
             driver.find_element_by_xpath(
-                "//android.widget.ListView[@resource-id='com.zjw.chehang168:id/list1']/android.widget.RelativeLayout[2]/android.widget.ListView[1]/android.widget.RelativeLayout[4]").click()
+                "//android.widget.ListView[@resource-id='com.zjw.chehang168:id/list1']/android.widget.RelativeLayout[1]/android.widget.ListView[1]/android.widget.RelativeLayout[{city}]".format(city=random.randint(1, 6))).click()
+
     except Exception as e:
-        print("省份选择出错:", e)
+        print("城市选择出错:", e)
     else:
-        # 选择地区：福州
+        # 选择地区
         try:
             if WebDriverWait(driver, 5).until(lambda x: x.find_element_by_xpath(
-                    "//android.widget.FrameLayout[1]/android.widget.LinearLayout[1]/android.widget.FrameLayout[1]/android.widget.LinearLayout[1]/android.widget.FrameLayout[1]/android.widget.LinearLayout[1]/android.widget.RelativeLayout[2]/android.widget.ListView[1]/android.widget.RelativeLayout[1]/android.widget.TextView[2]")):
+                    "//android.widget.ListView[@resource-id='com.zjw.chehang168:id/list2']/android.widget.RelativeLayout[{part}]".format(part=random.randint(1, 16)))):
                 driver.find_element_by_xpath(
-                    "//android.widget.FrameLayout[1]/android.widget.LinearLayout[1]/android.widget.FrameLayout[1]/android.widget.LinearLayout[1]/android.widget.FrameLayout[1]/android.widget.LinearLayout[1]/android.widget.RelativeLayout[2]/android.widget.ListView[1]/android.widget.RelativeLayout[1]/android.widget.TextView[2]").click()
+                    "//android.widget.ListView[@resource-id='com.zjw.chehang168:id/list2']/android.widget.RelativeLayout[{part}]".format(part=random.randint(1, 16))).click()
         except Exception as e:
             print("地区选择出错:", e)
-        else:
-            # 闽清县
-            try:
-                if WebDriverWait(driver, 5).until(lambda x: x.find_element_by_xpath(
-                        "//android.widget.FrameLayout[1]/android.widget.LinearLayout[1]/android.widget.FrameLayout[1]/android.widget.LinearLayout[1]/android.widget.FrameLayout[1]/android.widget.LinearLayout[1]/android.widget.RelativeLayout[2]/android.widget.RelativeLayout[1]/android.widget.ListView[1]/android.widget.RelativeLayout[5]/android.widget.TextView[1]")):
-                    driver.find_element_by_xpath(
-                        "//android.widget.FrameLayout[1]/android.widget.LinearLayout[1]/android.widget.FrameLayout[1]/android.widget.LinearLayout[1]/android.widget.FrameLayout[1]/android.widget.LinearLayout[1]/android.widget.RelativeLayout[2]/android.widget.RelativeLayout[1]/android.widget.ListView[1]/android.widget.RelativeLayout[5]/android.widget.TextView[1]").click()
-            except Exception as e:
-                print("城市选择出错:", e)
+        # else:
+        #     # 闽清县
+        #     try:
+        #         if WebDriverWait(driver, 5).until(lambda x: x.find_element_by_xpath(
+        #                 "//android.widget.FrameLayout[1]/android.widget.LinearLayout[1]/android.widget.FrameLayout[1]/android.widget.LinearLayout[1]/android.widget.FrameLayout[1]/android.widget.LinearLayout[1]/android.widget.RelativeLayout[2]/android.widget.RelativeLayout[1]/android.widget.ListView[1]/android.widget.RelativeLayout[5]/android.widget.TextView[1]")):
+        #             driver.find_element_by_xpath(
+        #                 "//android.widget.FrameLayout[1]/android.widget.LinearLayout[1]/android.widget.FrameLayout[1]/android.widget.LinearLayout[1]/android.widget.FrameLayout[1]/android.widget.LinearLayout[1]/android.widget.RelativeLayout[2]/android.widget.RelativeLayout[1]/android.widget.ListView[1]/android.widget.RelativeLayout[5]/android.widget.TextView[1]").click()
+        #     except Exception as e:
+        #         print("城市选择出错:", e)
 
 
 
@@ -307,7 +313,7 @@ if __name__ == '__main__':
     17169479357
     16574980930
     '''
-    for i in range(15):
+    for i in range(5):
         print("第%s次注册"%i)
         driver = get_driver()
         signup_car168(driver)

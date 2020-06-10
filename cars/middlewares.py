@@ -175,74 +175,77 @@ class DealDataMiddleware(object):
         return None
 
     def process_response(self, request, response, spider):
-        selflog = SelfLog('error')
-
+        selferrorlog = SelfLog('error')
+        selfinfolog = SelfLog(spider.name)
         # 把cookie从能用的库中转移到不能用的库里
-        cookie_redis_key = request.meta['cookies_redis']
+        cookie_redis_key_hash = request.meta['cookies_redis']
+        cookie_redis_key = request.meta['cookies_redis'] + "_list"
         unuse_cookie_redis_key = request.meta['useless_cookies']
         if response.status == 302:
             print(response.text)
-            selflog.logger.error("{spidername}-被封，302重定向到登录界面:".format(spidername=spider.name))
+            selferrorlog.logger.error("{spidername}-被封，302重定向到登录界面{cookie}:".format(spidername=spider.name, cookie=request.cookies))
             request = self.dealcookie(request, response, spider)
             return request
         elif "c=com&m=limitPage" in response.text:
-            selflog.logger.error("{spidername}-重定向到限制界面, cookie值:{cookie}".format(spidername=spider.name, cookie=request.cookies))
+            selferrorlog.logger.error("{spidername}-重定向到限制界面, cookie值:{cookie}".format(spidername=spider.name, cookie=request.cookies))
             request = self.dealcookie(request, response, spider)
             return request
         elif "请重新登录" in response.text:
-            selflog.logger.error("{spidername}-cookie:{cookies}过期，或者IP不一致，到登录界面".format(spidername=spider.name, cookies=request.cookies))
+            selferrorlog.logger.error("{spidername}-cookie:{cookies}过期，或者IP不一致，到登录界面".format(spidername=spider.name, cookies=request.cookies))
             request = self.dealcookie(request, response, spider)
             return request
-
+        selfinfolog.logger.info("请求url:{url}使用的cookie:{cookie}".format(url=response.url, cookie=request.cookies))
         return response
 
     # 处理过期或者被封cookie
     def dealcookie(self, request, response, spider):
         selflog = SelfLog('error')
-        cookie_redis_key = request.meta['cookies_redis']
+        cookie_redis_key_hash = request.meta['cookies_redis']
+        cookie_redis_key_list = request.meta['cookies_redis'] + "_list"
         unuse_cookie_redis_key = request.meta['useless_cookies']
 
         redis_member = json.dumps(request.cookies)
-        # redis中的得分值
-        zset_score = self.cookies_deal_r.zscore(cookie_redis_key, redis_member)
-        # 如果有值得话再将它移除并添加到不能用的zset否则一经被其它进程处理，不进行处理
-        if zset_score:
-            # 移除该值
-            self.cookies_deal_r.zrem(cookie_redis_key, redis_member)
-            # 在不能用的zset 中添加
-            self.cookies_deal_r.zadd(unuse_cookie_redis_key, {redis_member: zset_score})
 
-        # 随机取值
+        # 查到在hash 中的 手机号
+        zset_phone = self.cookies_deal_r.hget(cookie_redis_key_hash, redis_member)
+        # 移除在list 和 有用hash 中的 数据 # 在不能用的hash中添加
+        self.cookies_deal_r.lrem(cookie_redis_key_list, 0, redis_member)
+        self.cookies_deal_r.hdel(cookie_redis_key_hash, redis_member)
+        self.cookies_deal_r.hset(unuse_cookie_redis_key, redis_member, zset_phone)
+        # 再从redis中取出一个cookie构建request对象
         try:
-            randomcookie = random.choice(self.cookies_deal_r.zscan(cookie_redis_key)[1])[0]
+            popcookie = self.cookies_deal_r.lpop(cookie_redis_key_list)
+            self.cookies_deal_r.rpush(cookie_redis_key_list, popcookie)
 
         except Exception as e:
             selflog.logger.error("{spidername}--cookie 耗尽请补充, 错误信息:{e}".format(spidername=spider.name, e=e))
             # 发送邮件通知，并且最好处理能关闭爬虫
-            sendEmail(content="{cookname}cookie耗尽，请尽快处理".format(cookname=cookie_redis_key))
-            spider.crawler.engine.close_spider(spider, "{cookname}cookie耗尽，关闭爬虫".format(cookname=cookie_redis_key))
-
+            sendEmail(content="{cookname}cookie耗尽，请尽快处理".format(cookname=cookie_redis_key_list))
+            spider.crawler.engine.close_spider(spider, "{cookname}cookie耗尽，关闭爬虫".format(cookname=cookie_redis_key_list))
 
         else:
-            request.cookies = json.loads(randomcookie)
+            request.cookies = json.loads(popcookie)
             return request
-
 
     def get_cookies(self, request, spider):
         selflog = SelfLog('error')
-        cookie_redis_key = request.meta['cookies_redis']
+        cookie_redis_key_list = request.meta['cookies_redis'] + "_list"
+        cookie_redis_key_hash = request.meta['cookies_redis']
         unuse_cookie_redis_key = request.meta['useless_cookies']
         try:
-            cookies_dict = random.choice(self.cookies_deal_r.zscan(cookie_redis_key)[1])
+            # cookies_dict = random.choice(self.cookies_deal_r.zscan(cookie_redis_key)[1])
+            # 把cookie 取出来然后放到队尾
+            popcookie = self.cookies_deal_r.lpop(cookie_redis_key_list)
+            self.cookies_deal_r.rpush(cookie_redis_key_list, popcookie)
         except Exception as e:
             selflog.logger.error("spidername:{spidername} 的cookie 耗尽请补充, 错误信息:{e}".format(spidername=spider.name, e=e))
             # 发送邮件通知，并且最好处理能关闭爬虫
-            sendEmail(content="{cookname}cookie耗尽，请尽快处理".format(cookname=cookie_redis_key))
-            spider.crawler.engine.close_spider(spider, "{cookname}cookie耗尽，关闭爬虫".format(cookname=cookie_redis_key))
+            sendEmail(content="{cookname}cookie耗尽，请尽快处理".format(cookname=cookie_redis_key_list))
+            spider.crawler.engine.close_spider(spider, "{cookname}cookie耗尽，关闭爬虫".format(cookname=cookie_redis_key_list))
         else:
-            dicts = json.loads(cookies_dict[0])
-            phonenum = cookies_dict[1]
-            print("{cookie_redis}--手机号：{phonenum}--cookie:{cookie}".format(cookie_redis=cookie_redis_key, phonenum=phonenum, cookie=dicts))
+            dicts = json.loads(popcookie)
+            phonenum = self.cookies_deal_r.hget(cookie_redis_key_hash, popcookie)
+            print("{cookie_redis}--手机号：{phonenum}--cookie:{cookie}".format(cookie_redis=cookie_redis_key_hash, phonenum=phonenum, cookie=dicts))
             return dicts
 
 

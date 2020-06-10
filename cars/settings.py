@@ -32,7 +32,7 @@ CONCURRENT_REQUESTS = 2
 # See also autothrottle settings and docs
 
 # 下载器在下载同一个网站下一个页面前需要等待的时间,该选项可以用来限制爬取速度,减轻服务器压力。同时也支持小数:0.25 以秒为单位
-DOWNLOAD_DELAY = 5
+DOWNLOAD_DELAY = 7
 # The download delay setting will honor only one of:
 
 # 对单个网站进行并发请求的最大值。

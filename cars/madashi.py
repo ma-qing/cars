@@ -4,7 +4,7 @@ import os
 import random
 import re
 import time
-from multiprocessing import Process
+from multiprocessing import Process, Pool
 
 import requests
 from fake_useragent import UserAgent
@@ -121,13 +121,16 @@ def get_code(projectid, phonenum, token, matchrule, username="maxfire", processn
         token=token,
         username=username,
     )
-    while True:
+    count = 40
+    code = None
+    while count:
         time.sleep(3)
         result = requests.get(url).content.decode()
         status = result.split("|")[0]
         msg = result.split("|")[1]
         status = int(status)
         print("进程:%s验证码接受中***"%processname, result)
+        count = count - 1
         if status:
             search_result = re.search(matchrule, msg, re.I)
             code = search_result.group(1)
@@ -182,6 +185,7 @@ def check_isignup(token, phonenum, request_code,authtoken, s, processname=None):
                 return cookie
         else:
             print("接码平台未返回验证码")
+            return None
 
     elif return_dicts.get("status") == 400:
         # 已经注册了，只需要登录
@@ -207,15 +211,21 @@ def create_cookie_nnqc(processname):
     print("接码平台拿到的数据", phone_nume, token)
     nnsession = check_isignup(token, phone_nume, request_code, authentoken, s, processname)
     print(nnsession)
-    dicts = {}
-    lists = nnsession.split("=")
-    dicts[lists[0]] = lists[1]
-    print(dicts)
-    mapping = {json.dumps(dicts):int(phone_nume)}
-    # with open("./nnqcookies.txt", "a", encoding="utf8") as f:
-    #     f.write(mapping)
-
-    cookie_r.zadd(cookies_nnqc, mapping)
+    if nnsession:
+        dicts = {}
+        lists = nnsession.split("=")
+        dicts[lists[0]] = lists[1]
+        print(dicts)
+        mapping = {json.dumps(dicts):int(phone_nume)}
+        # with open("./nnqcookies.txt", "a", encoding="utf8") as f:
+        #     f.write(mapping)
+        # 将拿到的cookie信息存入redis list 和hash
+        dump_cookies = json.dumps(dicts)
+        cookie_r.hset("cookies_nnqc", dump_cookies, phone_nume)
+        cookie_r.lpush("cookies_nnqc_list", dump_cookies)
+        # cookie_r.zadd(cookies_nnqc, mapping)
+    else:
+        print("平台未返回验证码，无法注册")
 
 
 # 获取代理
@@ -236,15 +246,21 @@ if __name__ == '__main__':
     # print(check_isignup(token, phone_nume, request_code, s))
     # signupstatus, return_headers, siginupresult = signup(s=s, phonenum="17056393488", code="5054", password="ma123456",realname=random.choice(name_list), authtoken=authentoken)
 
-    prcess1 = Process(target=create_cookie_nnqc, args=("进程1",))
-    prcess2 = Process(target=create_cookie_nnqc, args=("进程2",))
-    prcess3 = Process(target=create_cookie_nnqc, args=("进程3",))
-    prcess1.start()
-    print("进程1开启************")
-    prcess2.start()
-    print("进程2开启************")
-    prcess3.start()
-    print("进程3开启************")
-    prcess1.join()
-    prcess2.join()
-    prcess3.join()
+    # prcess1 = Process(target=create_cookie_nnqc, args=("进程1",))
+    # prcess2 = Process(target=create_cookie_nnqc, args=("进程2",))
+    # prcess3 = Process(target=create_cookie_nnqc, args=("进程3",))
+    # prcess1.start()
+    # print("进程1开启************")
+    # prcess2.start()
+    # print("进程2开启************")
+    # prcess3.start()
+    # print("进程3开启************")
+    # prcess1.join()
+    # prcess2.join()
+    # prcess3.join()
+    p = Pool(2)  # 并行执行几个进程
+    for i in range(6):
+        res = p.apply_async(create_cookie_nnqc, args=("进程%s"%i,))
+
+    p.close()
+    p.join()
