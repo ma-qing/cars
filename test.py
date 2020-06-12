@@ -63,4 +63,5 @@ r = set_redis(2)
 
 
 if __name__ == '__main__':
-    pass
+    strs = "奥迪 A8L 17款 6.3TSFI W12 旗"
+    print(re.search("款\s.*?(\d+\.\d+i|\d+i|\d+\.\d+L[a-z]{0,1}|\d+L[a-z]{0,1}|\d+\.\d+T[A-Z]{0,3}|\d+T[A-Z]{0,3}|\d+ T[A-Z]{0,3})", strs).group(1))

@@ -45,13 +45,13 @@ class NnqcSpider(scrapy.Spider):
         return headers
 
 
-    def get_cookie(self, newcookie):
-
-        cookies_dict = random.choice(r_zet_cookie.zscan(cookies_nnqc)[1])
-        dicts = json.loads(cookies_dict[0])
-        phonenum = cookies_dict[1]
-        print("牛牛汽车每次请求时候的手机号：{phonenum}, cookie:{cookie}".format(phonenum=phonenum, cookie=dicts))
-        return dicts
+    # def get_cookie(self, newcookie):
+    #
+    #     cookies_dict = random.choice(r_zet_cookie.zscan(cookies_nnqc)[1])
+    #     dicts = json.loads(cookies_dict[0])
+    #     phonenum = cookies_dict[1]
+    #     print("牛牛汽车每次请求时候的手机号：{phonenum}, cookie:{cookie}".format(phonenum=phonenum, cookie=dicts))
+    #     return dicts
 
 
 

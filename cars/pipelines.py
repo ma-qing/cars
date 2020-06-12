@@ -77,7 +77,6 @@ class MysqlPipeline(object):
                                                                                              commit_id=commit_id, e=e))
         # 如果查不到则进行插入车型、价钱、更新时间等详情操作
         else:
-
             # 插入车型表
             sql = "insert into `{}` ({}) values ({})".format(
                 item.table_name,

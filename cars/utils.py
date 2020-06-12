@@ -94,12 +94,12 @@ def deal_year(car_style, obj):
 
 # 处理排量信息
 def deal_displacement(car_style, obj):
-    search_displacement = re.search("\d+\.\d+Li|\d+Li|\d+\.\d+Le|\d+Le|\d+\.\d+T|\d+T|\d+\.\d+L|\d+L", car_style)
+    search_displacement = re.search("款\s.*?(\d+\.\d+i|\d+i|\d+\.\d+L[a-z]{0,1}|\d+L[a-z]{0,1}|\d+\.\d+T[A-Z]{0,3}|\d+T[A-Z]{0,3}|\d+ T[A-Z]{0,3})", car_style)
     if search_displacement:
-        displacement = search_displacement.group()
+        displacement = search_displacement.group(1)
     else:
         obj.selflog.logger.info("车型:{car_style}未匹配到排量信息".format(car_style=car_style))
-        displacement = None
+        displacement = "None"
     return displacement
 
 
@@ -112,9 +112,9 @@ def deal_guideprice(guide_price, car_style, obj):
             guide_price = select_guide_price.group()
         else:
             obj.selflog.logger.info("车型:{car_style}未匹配到指导价格".format(car_style=car_style))
-            guide_price = None
+            guide_price = "None"
     else:
-        guide_price = None
+        guide_price = "None"
     return guide_price
 
 
