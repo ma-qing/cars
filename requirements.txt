@@ -51,7 +51,7 @@ queuelib==1.5.0
 redis==3.4.1
 requests==2.23.0
 requests-file==1.5.1
-rsa==4.0
+rsa==4.1
 Scrapy==2.0.1
 scrapy-redis==0.6.8
 selenium==3.141.0
